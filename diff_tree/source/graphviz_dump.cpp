@@ -1,66 +1,57 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctime>
-#include <sys/time.h>
-
-#include "list.h"
 #include "graphviz_dump.h"
 
 
-
-CODE_ERRORS Graphiz_Dump(List *list)
+CODE_ERRORS Graphiz_Dump_Tree(Tree *tree, char *filename)
 {
-    char *filename = Create_Filename_by_Time();
+    bool free_file_name = false;
+    if(filename[0] == '_')
+    {
+        filename = Create_Filename_by_Time();
+    }
 
     FILE *stream_write = fopen(filename, "w");   //обернуть в define
     if(stream_write == nullptr)     return PTR_NULL;
 
-    HANDLER_ERROR(Write_Graphiz_Dump_to_File(stream_write, list));
+    HANDLER_ERROR(Write_Graphiz_Dump_to_File_Tree(stream_write, tree));
 
     fclose(stream_write);
 
     HANDLER_ERROR(Create_Png_And_Show(filename));
 
-    char* filename2;
-    asprintf(&filename2, "%s%s", filename, ".html");
-
-    FILE *stream_write2 = fopen(filename2, "w");   //обернуть в define
-    if (stream_write2 == nullptr)     return PTR_NULL;
-    fprintf(stream_write2, "<img src=\"%s.png\" />", filename);
-    fclose(stream_write2);
-
-    free(filename);
-    free(filename2);
-
-    return ALL_GOOD;
+    if(free_file_name)
+    {
+        free(filename);
+    }
 }
 
-CODE_ERRORS Write_Graphiz_Dump_to_File(FILE *stream_write, List *list)
+CODE_ERRORS Recr_Write_Node_Dump(FILE *stream_write, Node *cur_node, int deep_recr)
+{
+    assert(cur_node != nullptr);
+        LOG(1, stderr, "Write_Graphiz_Dump_to_File_Tree i=%d, node = %p, data="data_spec"\n", deep_recr ,cur_node, cur_node->data);
+
+        const char *color = "#fff3e0";
+        fprintf(stream_write,
+                "node%p[label = \" data_type = %d | data = %lf | \", fillcolor = \"%s\", rank = %d];\n",
+                cur_node, cur_node->type_data, cur_node->data,
+                color, deep_recr);
+
+        if(cur_node->left != nullptr)    Recr_Write_Node_Dump(stream_write, cur_node->left, deep_recr + 1);
+
+        if(cur_node->right != nullptr)    Recr_Write_Node_Dump(stream_write, cur_node->right, deep_recr + 1);
+
+        return ALL_GOOD;
+}
+
+CODE_ERRORS Write_Graphiz_Dump_to_File_Tree(FILE *stream_write, Tree *tree)
 {
 
     fprintf(stream_write, "digraph\n{\n");
-    fprintf(stream_write, "rankdir = LR;\n\n");
 
     fprintf(stream_write, "node [shape = Mrecord, color  = \"navy\", style = \"filled\"];\n");
 
-    for (int i = 0; i <= list->capacity; i++)
-    {
-        const char *color = "#fff3e0";
+    HANDLER_ERROR(Recr_Write_Node_Dump(stream_write, tree->head_node.prev, 0));
 
-        Elem_list cur_elem= list->arr[i];
-
-        fprintf(stream_write,
-                "node%d[label = \"%d | data = %d | next = %d | prev = %d\", fillcolor = \"%s\"];\n",
-                i, i, cur_elem.val, cur_elem.next, cur_elem.prev,
-                color);
-    }
-        fprintf(stream_write, "node%d [style = \"dashed\", label = \"idx = %d\"];\n",
-            list->capacity + 1, list->capacity + 1);
-
-    fprintf(stream_write, "free  [label = \"free = %d\", ", list->arr[0].val);
+    /*
     fprintf(stream_write, "fillcolor = \"#33ff66\"];\n");
 
     fprintf(stream_write, "\nedge [color = \"orange\"];\n\n");
@@ -68,22 +59,28 @@ CODE_ERRORS Write_Graphiz_Dump_to_File(FILE *stream_write, List *list)
 
     fprintf(stream_write, "node%d -> node%d;\n", 0, cur_elem.val);
 
-    fprintf(stream_write, "\nedge [color = \"cornFlowerBlue\"];\n\n");
-    for (int i = 0; i <= list->capacity; i++)
-    {
-        Elem_list cur_elem= list->arr[i];
+    fprintf(stream_write, "\nedge [color = \"cornFlowerBlue\"];\n\n");*/
 
-        fprintf(stream_write, "node%d -> node%d;\n", i, cur_elem.next);
-    }
+    LOG(1, stderr, "tree->size = %d\n", tree->size);
 
-    fprintf(stream_write, "\nedge [color = \"salmon\"];\n\n");
-    for (int i = 0; i <= list->capacity; i++)
-    {
-        Elem_list cur_elem= list->arr[i];
+    HANDLER_ERROR(Recr_depend_tree_to_Dump(tree->head_node.prev, stream_write));
 
-        fprintf(stream_write, "node%d -> node%d;\n", i, cur_elem.prev);
-    }
     fprintf(stream_write, "}\n");
 
+    return ALL_GOOD;
+}
+
+CODE_ERRORS Recr_depend_tree_to_Dump(Node *cur_node, FILE *stream_out)
+{
+    if(cur_node->left != nullptr)
+    {
+        fprintf(stream_out, "node%p -> node%p;\n", cur_node, cur_node->left);
+        HANDLER_ERROR(Recr_depend_tree_to_Dump(cur_node->left, stream_out));
+    }
+    if(cur_node->right != nullptr)
+    {
+        fprintf(stream_out, "node%p -> node%p;\n", cur_node, cur_node->right);
+        HANDLER_ERROR(Recr_depend_tree_to_Dump(cur_node->right, stream_out));
+    }
     return ALL_GOOD;
 }
