@@ -1,0 +1,5 @@
+digraph
+{
+node [shape = Mrecord, color  = "navy", style = "filled"];
+node0x622000000218[label = " data_type = 0 | data = 2.000000 | ", fillcolor = "#fff3e0", rank = 0];
+}

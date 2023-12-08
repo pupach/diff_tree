@@ -6,6 +6,7 @@
 
 #include "graphviz_dump.h"
 #include "diff_tree.h"
+#include "read_expr_to_tree.h"
 
 #define LIST_DUMP(list)\
     List_Dump(list, __LINE__, __PRETTY_FUNCTION__)
@@ -15,6 +16,10 @@
 
 int main()
 {
+    FILE *str = fopen("NUL.txt", "w");
+    fprintf(str, "fsd%c", '\0');
+    fclose(str);
+
     fprintf(stdout, "вы хотите загрузить данные из базы?");
     bool ans_in = Analaze_Ans_on_quest("no", "yes");
 
@@ -23,12 +28,13 @@ int main()
     if(ans_in or (tree==nullptr))
     {
         FILE *stream_read = open_file("database/new.txt", "r");//сделать динамическую генерацию имени
-        tree = init_tree();
+        tree = init_tree(20);
         len_arr *buff = read_from_file_to_buff(stream_read);
 
-        int counter = 0;
-        tree->head_node.prev = Read_from_file_Node_Diff_Tree((char *)buff->arr, tree, &counter);//переписать на CODE_ERRORS
+        HANDLER_ERROR(read_expr_to_tree(tree, (char *)buff->arr));
+        HANDLER_ERROR(Graphiz_Dump_Tree(tree, "gr_dump/new_tree.dot"));
 
+        int counter = 0;
         free_mem_buf(buff);
     }
 

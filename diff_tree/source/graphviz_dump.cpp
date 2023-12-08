@@ -27,12 +27,12 @@ CODE_ERRORS Graphiz_Dump_Tree(Tree *tree, char *filename)
 CODE_ERRORS Recr_Write_Node_Dump(FILE *stream_write, Node *cur_node, int deep_recr)
 {
     assert(cur_node != nullptr);
-        LOG(1, stderr, "Write_Graphiz_Dump_to_File_Tree i=%d, node = %p, data="data_spec"\n", deep_recr ,cur_node, cur_node->data);
+//        LOG(1, stderr, "Write_Graphiz_Dump_to_File_Tree i=%d, node = %p, data="data_spec" node_left5 = %p, node-right = %p\n", deep_recr ,cur_node, cur_node->data, cur_node->left, cur_node->right);
 
         const char *color = "#fff3e0";
         fprintf(stream_write,
                 "node%p[label = \" data_type = %d | data = %lf | \", fillcolor = \"%s\", rank = %d];\n",
-                cur_node, cur_node->type_data, cur_node->data,
+                cur_node, cur_node->data.type_data, cur_node->data.data,
                 color, deep_recr);
 
         if(cur_node->left != nullptr)    Recr_Write_Node_Dump(stream_write, cur_node->left, deep_recr + 1);
@@ -61,7 +61,7 @@ CODE_ERRORS Write_Graphiz_Dump_to_File_Tree(FILE *stream_write, Tree *tree)
 
     fprintf(stream_write, "\nedge [color = \"cornFlowerBlue\"];\n\n");*/
 
-    LOG(1, stderr, "tree->size = %d\n", tree->size);
+    //LOG(1, stderr, "tree->size = %d\n", tree->size);
 
     HANDLER_ERROR(Recr_depend_tree_to_Dump(tree->head_node.prev, stream_write));
 

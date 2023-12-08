@@ -14,15 +14,6 @@
 #include "../../tree/source/akinator.h"
 
 
-enum TYPE_DATA_TREE
-{
-    NUMBER = 0,
-    TWO_ARG_FUNC = 1,
-    ONE_ARG_FUNC = 2,
-    VARIABLE    = 3,
-    UNDEF_TYPE = -1
-};
-
 enum OPERATORS
 {
     ADD = 1,

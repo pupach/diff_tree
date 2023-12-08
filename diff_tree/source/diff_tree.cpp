@@ -5,22 +5,42 @@
 #include <string.h>
 #include "diff_tree.h"
 #include "graphviz_dump.h"
-1
+int ac = 1;
+
 double Eval_value(Tree *tree, int list_vars[MAX_AMOUNT_VAR], double vars_value[MAX_AMOUNT_VAR], Node *save_top_node)
 {
     if(save_top_node == nullptr) save_top_node = tree->head_node.prev;
 
     double res = NAN;
+    LOG(1, stderr, "Eval_value %d %d\n", save_top_node->data.type_data, (int)save_top_node->data.data);
 
-    switch(save_top_node->type_data)
+    char s[40];
+    sprintf(s, "gr_dump/diff_tree_%d.dot", ac);
+    ac++;
+    Node *save = tree->head_node.prev;
+    tree->head_node.prev = save_top_node;
+    HANDLER_ERROR(Graphiz_Dump_Tree(tree, s));//TODO: write dump with tree and top
+    tree->head_node.prev = save;
+
+    switch(save_top_node->data.type_data)
     {
         case TWO_ARG_FUNC:
         {
+            if(save_top_node->left == nullptr)
+            { LOG(1, stderr, "l save_top_node = %p, data = %d, type = %d", save_top_node, save_top_node->data.data, save_top_node->data.type_data); exit(1);
+                    Node *save = tree->head_node.prev;
+                    tree->head_node.prev = save_top_node;
+                    HANDLER_ERROR(Graphiz_Dump_Tree(tree, s));//TODO: write dump with tree and top
+                    tree->head_node.prev = save;
+            }
+            if(save_top_node->right == nullptr){ LOG(1, stderr, "r save_top_node = %p, data = %d, type = %d", save_top_node, save_top_node->data.data, save_top_node->data.type_data); exit(1);}
+
             double val_left  = Eval_value(tree, list_vars, vars_value, save_top_node->left);
 
             double val_right = Eval_value(tree, list_vars, vars_value, save_top_node->right);
 
-            switch((int)save_top_node->data)
+
+            switch((int)save_top_node->data.data)
             {
                 case ADD:
                     res = val_left + val_right;
@@ -44,13 +64,6 @@ double Eval_value(Tree *tree, int list_vars[MAX_AMOUNT_VAR], double vars_value[M
 
                     if(save_top_node->left == nullptr){ LOG(1, stderr, "ERRRRRRRRROOOOR"); exit(1);}
 
-                    double val_left = Eval_value(tree, list_vars, vars_value, save_top_node->left);
-
-                    double val_right = 0;
-                    if(save_top_node->right != nullptr)
-                    {
-                        val_right = Eval_value(tree, list_vars, vars_value, save_top_node->right);
-                    }
                     res = pow(val_left, val_right);
                     break;
                 }
@@ -63,7 +76,7 @@ double Eval_value(Tree *tree, int list_vars[MAX_AMOUNT_VAR], double vars_value[M
 
         case VARIABLE:
         {
-            int index = find_val_var(save_top_node->data, list_vars);
+            int index = find_val_var(save_top_node->data.data, list_vars);
             if(res < 0) LOG(1, stderr, "undef_index\n");
             else
             {
@@ -73,15 +86,15 @@ double Eval_value(Tree *tree, int list_vars[MAX_AMOUNT_VAR], double vars_value[M
             break;
         }
         case NUMBER:
-            LOG(1, stderr, "res = %lf    ", save_top_node->data);
-            res = save_top_node->data;
+            LOG(1, stderr, "res = %lf    ", save_top_node->data.data);
+            res = save_top_node->data.data;
             break;
 
         default:
             LOG(1, stderr, "undef_command_AT_ALL\n");
     };
 
-    LOG(1, stderr, "res in eval type_data=%d, data=%lf, res=%lf save_top_node->data = %lf\n", save_top_node->type_data, save_top_node->data, res, save_top_node->data);
+    LOG(1, stderr, "res in eval data.type_data=%d, data=%lf, res=%lf save_top_node->data.data = %lf\n", save_top_node->data.type_data, save_top_node->data.data, res, save_top_node->data.data);
     return res;
 }
 
@@ -117,41 +130,51 @@ Node *Read_from_file_Node_Diff_Tree(char *buff, Tree *tree, int *counter)
     Node *right = Read_from_file_Node_Diff_Tree(buff, tree, counter);
 
     Node *cur_node = nullptr;
+    TREE_DATA cal_data = {};
+
     switch(data[0])
     {
         case '+':
-            cur_node = Create_Node(tree, ADD, left, right);
-            cur_node->type_data = TWO_ARG_FUNC;
+            cal_data.data = ADD;
+            cal_data.type_data = TWO_ARG_FUNC;
             break;
 
         case '-':
-            cur_node = Create_Node(tree, SUB, left, right);
-            cur_node->type_data = TWO_ARG_FUNC;
+            cal_data.data = SUB;
+            cal_data.type_data = TWO_ARG_FUNC;
             break;
 
         case '*':
-            cur_node = Create_Node(tree, MUL, left, right);
-            cur_node->type_data = TWO_ARG_FUNC;
+            cal_data.data = MUL;
+            cal_data.type_data = TWO_ARG_FUNC;
             break;
+
+        case '/':
+            cal_data.data = DIV;
+            cal_data.type_data = TWO_ARG_FUNC;
+            break;
+
         case '^':
-            cur_node = Create_Node(tree, DEGREE, left, right);
-            cur_node->type_data = TWO_ARG_FUNC;
+            cal_data.data = DEGREE;
+            cal_data.type_data = TWO_ARG_FUNC;
             break;
 
         default:
             if(isalpha(data[0]))
             {
-                cur_node = Create_Node(tree, (int)data[0], left, right);
-                cur_node->type_data = VARIABLE;
+                cal_data.data = (int)data[0];
+                cal_data.type_data = VARIABLE;
             }
             else
             {
-                cur_node = Create_Node(tree, atoi(data), left, right);
-                cur_node->type_data = NUMBER;
+                cal_data.data = atoi(data);
+                cal_data.type_data = NUMBER;
             }
-    };//TODO: внести type_data в CREATE_NODE
+    };
 
-    LOG(1, stderr, "R_F_N counter=%d, data=%lf  type_data=%d\n ", *counter, cur_node->data, cur_node->type_data);
+    cur_node = Create_Node(tree, cal_data, left, right);
+
+    LOG(1, stderr, "R_F_N counter=%d, data=%lf  data.type_data=%d\n ", *counter, cur_node->data.data, cur_node->data.type_data);
 
     assert(cur_node != nullptr);
 
@@ -170,34 +193,34 @@ Node *Read_from_file_Node_Diff_Tree(char *buff, Tree *tree, int *counter)
 
 CODE_ERRORS Write_inf_about_node_to_File_Diff_Tree(FILE *stream_write, Node *node)
 {
-    switch(node->type_data)
+    switch(node->data.type_data)
     {
         case NUMBER:
-            fprintf(stream_write, "(%d%c", node->data, '\0');
+            fprintf(stream_write, "(%d%c", node->data.data, '\0');
             break;
 
         case TWO_ARG_FUNC:
         {
-            switch((int)node->data)
+            switch((int)node->data.data)
             {
                 case ADD:
-                    fprintf(stream_write, "(+%c", node->data, '\0');
+                    fprintf(stream_write, "(+%c", node->data.data, '\0');
                     break;
 
                 case SUB:
-                    fprintf(stream_write, "(-%c", node->data, '\0');
+                    fprintf(stream_write, "(-%c", node->data.data, '\0');
                     break;
 
                 case MUL:
-                    fprintf(stream_write, "(*%c", node->data, '\0');
+                    fprintf(stream_write, "(*%c", node->data.data, '\0');
                     break;
 
                 case DIV:
-                    fprintf(stream_write, "(/%c", node->data, '\0');
+                    fprintf(stream_write, "(/%c", node->data.data, '\0');
                     break;
 
                 case DEGREE:
-                    fprintf(stream_write, "(^%c", node->data, '\0');
+                    fprintf(stream_write, "(^%c", node->data.data, '\0');
                     break;
 
                 default:
@@ -207,7 +230,7 @@ CODE_ERRORS Write_inf_about_node_to_File_Diff_Tree(FILE *stream_write, Node *nod
         }
 
         case VARIABLE:
-            fprintf(stream_write, "(%c%c", (char)node->data, '\0');
+            fprintf(stream_write, "(%c%c", (char)node->data.data, '\0');
             break;
 
         default:
@@ -247,12 +270,13 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
     Tree *right_left_tree   = nullptr;
     Tree *left_left_tree         = nullptr;
     Tree *res_tree          = nullptr;
+    TREE_DATA data = {};
 
-    switch((int)save_top_node->type_data)
+    switch((int)save_top_node->data.type_data)
     {
         case TWO_ARG_FUNC:
         {
-            switch((int)save_top_node->data)
+            switch((int)save_top_node->data.data)
             {
                 case ADD:
                 {
@@ -286,14 +310,18 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
         case NUMBER:
         {
             res_tree = init_tree();
-            Node *new_node = Create_Node(res_tree, 0);
-            Set_new_High(res_tree, new_node);//TODO: to do smth with it
+            data.data = 0;
+            data.type_data = NUMBER;
+            Node *new_node = Create_Node(res_tree, data);
+            Set_new_High(res_tree, new_node);
             break;
         }
         case VARIABLE:
         {
             res_tree = init_tree();
-            Node *new_node = Create_Node(res_tree, 1);
+            data.data = 1;
+            data.type_data = VARIABLE;
+            Node *new_node = Create_Node(res_tree, data);
             Set_new_High(res_tree, new_node);
             break;
         }
@@ -301,11 +329,10 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
     {
     }
     };
+
     HANDLER_ERROR(Graphiz_Dump_Tree(res_tree, "gr_dump/res_tree_before_ret.dot"));
     return res_tree;
 }
-
-//TODO:поменять названия функций на более понятные и адекватные
 
 Tree *Join_Trees_in_Node(Tree *left_tree, Tree *right_tree, OPERATORS op, Node *left_top_node, Node *right_top_node)
 {
@@ -320,8 +347,10 @@ Tree *Join_Trees_in_Node(Tree *left_tree, Tree *right_tree, OPERATORS op, Node *
     Tree_Copy(right_tree, new_tree, right_top_node);
     Node *right_node = new_tree->head_node.prev;
 
-    Node *top_node = Create_Node(new_tree, op, left_node, right_node);
-    top_node->type_data = 1;//TODO:сделать универсальный тип
+    TREE_DATA data = {};
+    data.data = op;
+    data.type_data = TWO_ARG_FUNC;
+    Node *top_node = Create_Node(new_tree, data, left_node, right_node);
 
     HANDLER_ERROR(Set_new_High(new_tree, top_node));
 
@@ -347,10 +376,8 @@ Tree *Tree_Copy(Tree *tree_from_cpy, Tree *tree_where_cpy, Node *top_source) //T
         {
             HANDLER_ERROR(Increase_copacity_Tree(tree_where_cpy));
         }
-        tree_where_cpy->last_stor_node->list_node += tree_where_cpy->size;
     }
     tree_where_cpy->head_node.prev = Recr_Copy_Node(tree_where_cpy, tree_from_cpy, top_source);//как можно сделать копирование дерева
-    tree_where_cpy->last_stor_node->list_node -= tree_where_cpy->size;//при создании дерева с нуля size будет равен 0
     tree_where_cpy->size += tree_from_cpy->size;
 
     return tree_where_cpy;
@@ -361,8 +388,10 @@ Node *Recr_Copy_Node(Tree *tree_to_cpy, Tree *tree_from_cpy, Node *save_top_node
 {
     if(save_top_node == nullptr)    save_top_node = tree_from_cpy->head_node.prev;
 
-    Node *cur_node = Create_Node(tree_to_cpy, save_top_node->data);
-    cur_node->type_data = save_top_node->type_data;
+    TREE_DATA data = {};
+    data.data = save_top_node->data.data;
+    data.type_data = save_top_node->data.type_data;
+    Node *cur_node = Create_Node(tree_to_cpy, data);
 
     if(save_top_node->left != nullptr)
     {
@@ -384,6 +413,8 @@ Tree *DIFF_OP_DATA_ADD(Tree *tree, Node *save_top_node)
 
     Tree *res_tree = Join_Trees_in_Node(left_tree, right_tree, ADD);
 
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_tree));
     return res_tree;
 }
 
@@ -393,6 +424,10 @@ Tree *DIFF_OP_DATA_SUB(Tree *tree, Node *save_top_node)
     Tree *right_tree = Diff_Tree(tree, save_top_node->right);
 
     Tree *res_tree = Join_Trees_in_Node(left_tree, right_tree, SUB);
+
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_tree));
+    return res_tree;
 }//TODO: join to one
 
 Tree *DIFF_OP_DATA_MUL(Tree *tree, Node *save_top_node)
@@ -409,9 +444,12 @@ Tree *DIFF_OP_DATA_MUL(Tree *tree, Node *save_top_node)
     HANDLER_ERROR(Graphiz_Dump_Tree(right_tree, "gr_dump/diff_right_tree.dot"));
 
     Tree *res_tree = Join_Trees_in_Node(left_tree, right_tree, ADD);//TODO: исправить что два раза копируется одно и тоже
-    //TODO:сделать free
     HANDLER_ERROR(Graphiz_Dump_Tree(res_tree, "gr_dump/res_tree_after_MUL1.dot"));
 
+    HANDLER_ERROR(Destructor_Tree(left_left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_left_tree));
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_tree));
     return res_tree;
 }
 
@@ -434,6 +472,12 @@ Tree *DIFF_OP_DATA_DIV(Tree *tree, Node *save_top_node)
 
     HANDLER_ERROR(Graphiz_Dump_Tree(res_tree, "gr_dump/res_tree_after_DIV.dot"));
 
+    HANDLER_ERROR(Destructor_Tree(left_left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_left_tree));
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_tree));
+    HANDLER_ERROR(Destructor_Tree(div_tree));
+    HANDLER_ERROR(Destructor_Tree(add_tree));
     return res_tree;
 }
 
@@ -445,7 +489,12 @@ Tree *DIFF_OP_DATA_DEGREE(Tree *tree, Node *save_top_node)
     Tree *left_left_right_left_tree = tree;
 
     Tree *left_left_right_right_tree = init_tree();
-    Node *top_node = Create_Node(left_left_right_right_tree, 1);
+
+    TREE_DATA data = {};
+    data.data = 1;
+    data.type_data = NUMBER;
+
+    Node *top_node = Create_Node(left_left_right_right_tree, data);
     Set_new_High(left_left_right_right_tree, top_node);
 
     Tree *left_left_right = Join_Trees_in_Node(left_left_right_left_tree, left_left_right_right_tree, SUB, save_top_node->right);
