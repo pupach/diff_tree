@@ -26,4 +26,6 @@ int read_last_1_op_priorety(Tree *tree, char *beg_cur_buff, Node **top_node);
 
 int read_brackets_in_expr(Tree *tree, char *beg_cur_buff, Node **top_node);
 
+int Read_Expt_in_Brack(Tree *tree, char *beg_cur_buff, Node **top_node);
+
 #endif

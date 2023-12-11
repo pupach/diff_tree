@@ -149,47 +149,64 @@ int read_last_2_op_priorety(Tree *tree, char *beg_cur_buff, Node **top_node)
     return counter;
 }
 
-int read_brackets_in_expr(Tree *tree, char *beg_cur_buff, Node **top_node)
+int read_brackets_in_expr(Tree *tree, char *beg_cur_buff, Node **top_node)//one_arg
 {
     int counter = 0;
     char nn[20] = {};
 
     if(beg_cur_buff[counter] == '(')
     {
-        counter++;
-        counter += read_last_op_priorety(tree, beg_cur_buff + counter, top_node);
-
-        if(beg_cur_buff[counter] != ')') return 10000;
-        counter++;
+        return Read_Expt_in_Brack(tree, beg_cur_buff, top_node);
     }
     else
     {
-        int numb = -1;
+        double numb = -1;
         if(beg_cur_buff[counter] == '0')
         {
             numb = 0;
         }
         else
         {
-            numb = atoi(beg_cur_buff + counter);
+            numb = atof(beg_cur_buff + counter);
             strcpy(nn, beg_cur_buff + counter);
-            counter += strlen(beg_cur_buff + counter);
+
+            LOG(1, stderr, "nn = %s numb = %lf\n", nn, numb);
+
+            counter += strlen(beg_cur_buff + counter) + 1;
 
             TREE_DATA data = {};
 
-            if(isalpha(nn[0]) != 0)
+            if(strcmp(nn, "sin") == 0)
+            {
+                Node *left_node;
+                data.data = SIN;
+                data.type_data = ONE_ARG_FUNC;
+                counter += Read_Expt_in_Brack(tree, beg_cur_buff + counter, &left_node); //TOD: delete copy
+                (*top_node) = Create_Node(tree, data, *top_node, nullptr);
+                HANDLER_ERROR(Insert_Node_to_Tree(left_node, (*top_node),  LEFT_INS));
+            }
+            else if(strcmp(nn, "cos") == 0)
+            {
+                Node *left_node;
+                data.data = COS;
+                data.type_data = ONE_ARG_FUNC;
+
+                counter += Read_Expt_in_Brack(tree, beg_cur_buff + counter, &left_node);
+                (*top_node) = Create_Node(tree, data, *top_node, nullptr);
+                HANDLER_ERROR(Insert_Node_to_Tree(left_node, (*top_node),  LEFT_INS));
+            }
+            else if(isalpha(nn[0]) != 0)
             {
                 data.data = (int)nn[0];
                 data.type_data = VARIABLE;
                 (*top_node) = Create_Node(tree, data, nullptr, nullptr);
-                counter++;
             }
             else if((numb != 0))
             {
                 data.data = numb;
                 data.type_data = NUMBER;
                 (*top_node) = Create_Node(tree, data, nullptr, nullptr);
-                counter++;
+
                 LOG(1, stderr, "(*top_node) = %p\n", (*top_node));
             }
             else
@@ -199,5 +216,18 @@ int read_brackets_in_expr(Tree *tree, char *beg_cur_buff, Node **top_node)
         }
         LOG(1, stderr, "read_brackets_in_expr counter = %d numb = %d nn = %s\n", counter, numb, nn);
     }
+    return counter;
+}
+
+int Read_Expt_in_Brack(Tree *tree, char *beg_cur_buff, Node **top_node)
+{
+    int counter = 0;
+
+    counter++;
+    counter += read_last_op_priorety(tree, beg_cur_buff + counter, top_node);
+
+    if(beg_cur_buff[counter] != ')') LOG(1, stderr, "CANT FIND ) !!!!!!!!!!!!!!\n");;
+    counter++;
+
     return counter;
 }

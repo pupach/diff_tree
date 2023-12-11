@@ -41,7 +41,7 @@ int main()
     HANDLER_ERROR(Graphiz_Dump_Tree(tree, "gr_dump/begin_tree.dot"));
 
     int list_vars[5] = {(int)'x', 0, 0, 0, 0};
-    double val_vars[5] = {3, 0, 0, 0, 0};
+    double val_vars[5] = {3.14, 0, 0, 0, 0};
 
     LOG(1, stderr, "\n Eval_value = %lf \n", Eval_value(tree, list_vars, val_vars));
 

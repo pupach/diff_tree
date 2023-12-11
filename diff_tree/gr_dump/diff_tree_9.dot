@@ -1,5 +1,11 @@
 digraph
 {
 node [shape = Mrecord, color  = "navy", style = "filled"];
-node0x6200000000f0[label = " data_type = 0 | data = 2.000000 | ", fillcolor = "#fff3e0", rank = 0];
+node0x625000002938[label = " data_type = 2 | data = 8.000000 | ", fillcolor = "#fff3e0", rank = 0];
+node0x625000002970[label = " data_type = 1 | data = 5.000000 | ", fillcolor = "#fff3e0", rank = 1];
+node0x6250000029a8[label = " data_type = 3 | data = 120.000000 | ", fillcolor = "#fff3e0", rank = 2];
+node0x6250000029e0[label = " data_type = 0 | data = 2.000000 | ", fillcolor = "#fff3e0", rank = 2];
+node0x625000002938 -> node0x625000002970;
+node0x625000002970 -> node0x6250000029a8;
+node0x625000002970 -> node0x6250000029e0;
 }

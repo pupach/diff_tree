@@ -74,6 +74,29 @@ double Eval_value(Tree *tree, int list_vars[MAX_AMOUNT_VAR], double vars_value[M
             break;
         }
 
+        case ONE_ARG_FUNC:
+        {
+
+            double val_left  = Eval_value(tree, list_vars, vars_value, save_top_node->left);
+
+            switch((int)save_top_node->data.data)
+            {
+                case SIN:
+                    res = sin(val_left);
+                    break;
+
+                case COS:
+                    res = cos(val_left);
+                    break;
+
+                default:
+                    LOG(1, stderr, "undef_command_ONE_ARG_FUNC data = %d\n");
+
+            };
+
+            break;
+        }
+
         case VARIABLE:
         {
             int index = find_val_var(save_top_node->data.data, list_vars);
@@ -272,6 +295,8 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
     Tree *res_tree          = nullptr;
     TREE_DATA data = {};
 
+    LOG(1, stderr, "type_data = %d, data = %d\n", save_top_node->data.type_data, (int)save_top_node->data.data);
+
     switch((int)save_top_node->data.type_data)
     {
         case TWO_ARG_FUNC:
@@ -280,27 +305,27 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
             {
                 case ADD:
                 {
-                    res_tree = DIFF_OP_DATA_ADD(tree, save_top_node);
+                    res_tree = DIFF_ADD(tree, save_top_node);
                     break;
                 }
                 case SUB:
                 {
-                    res_tree = DIFF_OP_DATA_SUB(tree, save_top_node);
+                    res_tree = DIFF_SUB(tree, save_top_node);
                     break;
                 }
                 case MUL:
                 {
-                    res_tree = DIFF_OP_DATA_MUL(tree, save_top_node);
+                    res_tree = DIFF_MUL(tree, save_top_node);
                     break;
                 }
                 case DIV:
                 {
-                    res_tree = DIFF_OP_DATA_DIV(tree, save_top_node);
+                    res_tree = DIFF_DIV(tree, save_top_node);
                     break;
                 }
                 case DEGREE:
                 {
-                    res_tree = DIFF_OP_DATA_DEGREE(tree, save_top_node);
+                    res_tree = DIFF_DEGREE(tree, save_top_node);
                     break;
                 }
                 break;
@@ -310,8 +335,10 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
         case NUMBER:
         {
             res_tree = init_tree();
+
             data.data = 0;
             data.type_data = NUMBER;
+
             Node *new_node = Create_Node(res_tree, data);
             Set_new_High(res_tree, new_node);
             break;
@@ -319,15 +346,35 @@ Tree *Diff_Tree(Tree *tree, Node *cur_top_node)
         case VARIABLE:
         {
             res_tree = init_tree();
+
             data.data = 1;
-            data.type_data = VARIABLE;
+            data.type_data = NUMBER;
+
             Node *new_node = Create_Node(res_tree, data);
             Set_new_High(res_tree, new_node);
             break;
         }
-    case ONE_ARG_FUNC:
-    {
-    }
+        case ONE_ARG_FUNC:
+        {
+            LOG(1, stderr, "ONE_ARG_FUNC! switch_data = %d \n", (int)save_top_node->data.data);
+            HANDLER_ERROR(Graphiz_Dump_Tree(tree, "ONE_ARG_FUNC.dot"));//TODO: write dump with tree and top
+
+            switch((int)save_top_node->data.data)
+            {
+                case SIN:
+                {
+                    res_tree = DIFF_SIN(tree, save_top_node);
+                    break;
+                }
+                case COS:
+                {
+                    res_tree = DIFF_COS(tree, save_top_node);
+                    break;
+                }
+                default:
+                    LOG(1, stderr, "\n undef_comand_ONE_ARG_FUNC data = %lf \n", save_top_node->data.data);
+            };
+        }
     };
 
     HANDLER_ERROR(Graphiz_Dump_Tree(res_tree, "gr_dump/res_tree_before_ret.dot"));
@@ -342,7 +389,7 @@ Tree *Join_Trees_in_Node(Tree *left_tree, Tree *right_tree, OPERATORS op, Node *
     Tree *new_tree = init_tree(left_tree->copacity + right_tree->copacity + 10);
 
     Tree_Copy(left_tree, new_tree, left_top_node);
-    Node *left_node = left_top_node;
+    Node *left_node = new_tree->head_node.prev;
 
     Tree_Copy(right_tree, new_tree, right_top_node);
     Node *right_node = new_tree->head_node.prev;
@@ -350,7 +397,10 @@ Tree *Join_Trees_in_Node(Tree *left_tree, Tree *right_tree, OPERATORS op, Node *
     TREE_DATA data = {};
     data.data = op;
     data.type_data = TWO_ARG_FUNC;
-    Node *top_node = Create_Node(new_tree, data, left_node, right_node);
+    Node *top_node = Create_Node(new_tree, data, nullptr, nullptr);
+
+    HANDLER_ERROR(Insert_Node_to_Tree(left_node, top_node, LEFT_INS));
+    HANDLER_ERROR(Insert_Node_to_Tree(right_node, top_node, RIGHT_INS));
 
     HANDLER_ERROR(Set_new_High(new_tree, top_node));
 
@@ -368,7 +418,6 @@ Tree *Tree_Copy(Tree *tree_from_cpy, Tree *tree_where_cpy, Node *top_source) //T
 
         tree_where_cpy->head_node.prev;
         tree_where_cpy->factor_copacity = tree_from_cpy->factor_copacity;
-        tree_where_cpy->stk_of_choise = tree_from_cpy->stk_of_choise;
     }
     else
     {
@@ -391,6 +440,7 @@ Node *Recr_Copy_Node(Tree *tree_to_cpy, Tree *tree_from_cpy, Node *save_top_node
     TREE_DATA data = {};
     data.data = save_top_node->data.data;
     data.type_data = save_top_node->data.type_data;
+    LOG(1, stderr, "!!!! data = %d data_type = %d !!! \n", (int)save_top_node->data.data, save_top_node->data.type_data);
     Node *cur_node = Create_Node(tree_to_cpy, data);
 
     if(save_top_node->left != nullptr)
@@ -406,7 +456,7 @@ Node *Recr_Copy_Node(Tree *tree_to_cpy, Tree *tree_from_cpy, Node *save_top_node
     return cur_node;//TODO move to tree
 }
 
-Tree *DIFF_OP_DATA_ADD(Tree *tree, Node *save_top_node)
+Tree *DIFF_ADD(Tree *tree, Node *save_top_node)
 {
     Tree *left_tree  = Diff_Tree(tree, save_top_node->left);
     Tree *right_tree = Diff_Tree(tree, save_top_node->right);
@@ -418,7 +468,55 @@ Tree *DIFF_OP_DATA_ADD(Tree *tree, Node *save_top_node)
     return res_tree;
 }
 
-Tree *DIFF_OP_DATA_SUB(Tree *tree, Node *save_top_node)
+Tree *DIFF_SIN(Tree *tree, Node *save_top_node)
+{
+    Tree *right_tree  = Diff_Tree(tree, save_top_node->left);
+
+    Tree *left_tree = Tree_Copy(tree, nullptr, save_top_node);
+
+    LOG(1, stderr, "\n data = %lf \n", left_tree->head_node.prev->data.data);
+
+    left_tree->head_node.prev->data.data = COS;//TODO:сделать отдельный тип для head_node and rename
+
+    Tree *res_tree = Join_Trees_in_Node(left_tree, right_tree, MUL);
+
+    LOG(1, stderr, "\n res_tree before destrictor dataleft = %lf \n", res_tree->head_node.prev->left->data.data);
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+
+    HANDLER_ERROR(Destructor_Tree(right_tree));
+    LOG(1, stderr, "\n res_tree dataleft = %lf \n", res_tree->head_node.prev->left->data.data);
+    return res_tree;
+}
+
+
+Tree *DIFF_COS(Tree *tree, Node *save_top_node)
+{
+    Tree *right_tree  = Diff_Tree(tree, save_top_node->left);
+
+    Tree *left_left_tree = Tree_Copy(tree, nullptr, save_top_node->left);
+    left_left_tree->head_node.prev->data.data = SIN;
+
+    Tree *left_right_tree = init_tree();
+    TREE_DATA tree_data = {};
+    tree_data.data = -1;
+    tree_data.type_data = NUMBER;
+    Node *left_right_top = Create_Node(left_right_tree, tree_data);
+    HANDLER_ERROR(Set_new_High(left_right_tree, left_right_top));
+
+    Tree *left_tree = Join_Trees_in_Node(left_left_tree, left_right_tree, MUL);
+
+    Tree *res_tree = Join_Trees_in_Node(left_tree, right_tree, MUL);
+
+    HANDLER_ERROR(Destructor_Tree(left_left_tree));
+    HANDLER_ERROR(Destructor_Tree(left_right_tree));
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_tree));
+    return res_tree;
+}
+
+
+
+Tree *DIFF_SUB(Tree *tree, Node *save_top_node)
 {
     Tree *left_tree  = Diff_Tree(tree, save_top_node->left);
     Tree *right_tree = Diff_Tree(tree, save_top_node->right);
@@ -430,7 +528,7 @@ Tree *DIFF_OP_DATA_SUB(Tree *tree, Node *save_top_node)
     return res_tree;
 }//TODO: join to one
 
-Tree *DIFF_OP_DATA_MUL(Tree *tree, Node *save_top_node)
+Tree *DIFF_MUL(Tree *tree, Node *save_top_node)
 {
     Tree *left_left_tree = Diff_Tree(tree, save_top_node->left);
     HANDLER_ERROR(Graphiz_Dump_Tree(left_left_tree, "gr_dump/diff_left_left_tree.dot"));
@@ -453,7 +551,7 @@ Tree *DIFF_OP_DATA_MUL(Tree *tree, Node *save_top_node)
     return res_tree;
 }
 
-Tree *DIFF_OP_DATA_DIV(Tree *tree, Node *save_top_node)
+Tree *DIFF_DIV(Tree *tree, Node *save_top_node)
 {
     Tree *left_left_tree = Diff_Tree(tree, save_top_node->left);
     HANDLER_ERROR(Graphiz_Dump_Tree(left_left_tree, "gr_dump/diff_left_left_tree.dot"));
@@ -481,7 +579,7 @@ Tree *DIFF_OP_DATA_DIV(Tree *tree, Node *save_top_node)
     return res_tree;
 }
 
-Tree *DIFF_OP_DATA_DEGREE(Tree *tree, Node *save_top_node)
+Tree *DIFF_DEGREE(Tree *tree, Node *save_top_node)
 {
     Tree *right_tree = Diff_Tree(tree, save_top_node->left);
 
@@ -512,5 +610,11 @@ Tree *DIFF_OP_DATA_DEGREE(Tree *tree, Node *save_top_node)
     Tree *res_tree = Join_Trees_in_Node(left_tree, right_tree, MUL);
 
     HANDLER_ERROR(Graphiz_Dump_Tree(res_tree, "gr_dump/res_tree.dot"));
+
+    HANDLER_ERROR(Destructor_Tree(left_left_right_right_tree));
+    HANDLER_ERROR(Destructor_Tree(left_left_right));
+    HANDLER_ERROR(Destructor_Tree(left_left_tree));
+    HANDLER_ERROR(Destructor_Tree(left_tree));
+    HANDLER_ERROR(Destructor_Tree(right_tree));
     return res_tree;
 }

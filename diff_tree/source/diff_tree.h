@@ -20,7 +20,9 @@ enum OPERATORS
     SUB = 2,
     MUL = 3,
     DIV = 4,
-    DEGREE = 5
+    DEGREE = 5,
+    SIN = 7,
+    COS = 8
 
 };
 
@@ -36,15 +38,19 @@ Tree *Join_Trees_in_Node(Tree *left_tree, Tree *right_tree, OPERATORS op, Node *
 
 Tree *Diff_Tree(Tree *tree, Node *cur_top_node);
 
-Tree *DIFF_OP_DATA_ADD(Tree *tree, Node *save_top_node);
+Tree *DIFF_ADD(Tree *tree, Node *save_top_node);
 
-Tree *DIFF_OP_DATA_SUB(Tree *tree, Node *save_top_node);
+Tree *DIFF_SUB(Tree *tree, Node *save_top_node);
 
-Tree *DIFF_OP_DATA_MUL(Tree *tree, Node *save_top_node);
+Tree *DIFF_MUL(Tree *tree, Node *save_top_node);
 
-Tree *DIFF_OP_DATA_DIV(Tree *tree, Node *save_top_node);
+Tree *DIFF_DIV(Tree *tree, Node *save_top_node);
 
-Tree *DIFF_OP_DATA_DEGREE(Tree *tree, Node *save_top_node);
+Tree *DIFF_DEGREE(Tree *tree, Node *save_top_node);
+
+Tree *DIFF_SIN(Tree *tree, Node *save_top_node);
+
+Tree *DIFF_COS(Tree *tree, Node *save_top_node);
 
 CODE_ERRORS Write_inf_about_node_to_File_Diff_Tree(FILE *stream_write, Node *node);
 
